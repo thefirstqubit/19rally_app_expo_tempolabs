@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import NetInfo from '@react-native-community/netinfo';
 
 const TimeClockHub = ({
   userName = "John Doe",
@@ -25,20 +26,38 @@ const TimeClockHub = ({
   const [wifiStatus, setWifiStatus] = useState("");
   const [autoClockInEnabled, setAutoClockInEnabled] = useState(true);
   const [activeSection, setActiveSection] = useState("recent");
+  const [hasAutoClockedIn, setHasAutoClockedIn] = useState(false);
 
-  // Simulated Wi-Fi check for mobile
+  // Wi-Fi check using netinfo
   const checkWifiConnection = async () => {
     try {
-      // TODO: Replace with expo-network for real Wi-Fi detection
-      // Example: import * as Network from 'expo-network';
-      // const networkState = await Network.getNetworkStateAsync();
-      setWifiStatus(companyWifiSSID);
+      // Ensure companyWifiSSID is valid
+      if (typeof companyWifiSSID !== 'string' || !companyWifiSSID.trim()) {
+        setWifiStatus('Invalid SSID');
+        Alert.alert('Error', 'Company Wi-Fi SSID is invalid');
+        return;
+      }
 
-      if (companyWifiSSID && !clockedIn && autoClockInEnabled) {
-        setTimeout(() => handleAutoClockIn(), 2000);
+      const state = await NetInfo.fetch();
+      if (state.type === 'wifi' && state.isConnected) {
+        const currentSSID = state.details.ssid || 'Unknown';
+        setWifiStatus(currentSSID);
+
+        if (
+          currentSSID === companyWifiSSID &&
+          !clockedIn &&
+          autoClockInEnabled &&
+          !hasAutoClockedIn
+        ) {
+          handleAutoClockIn();
+          setHasAutoClockedIn(true);
+        }
+      } else {
+        setWifiStatus('Not connected to Wi-Fi');
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to detect Wi-Fi connection");
+      setWifiStatus('Error');
+      Alert.alert('Error', `Failed to detect Wi-Fi: ${error.message}`);
     }
   };
 
@@ -69,6 +88,13 @@ const TimeClockHub = ({
       }
     }
   };
+
+  // Reset hasAutoClockedIn when clockedIn changes to false
+  useEffect(() => {
+    if (!clockedIn) {
+      setHasAutoClockedIn(false);
+    }
+  }, [clockedIn]);
 
   // Effect to check Wi-Fi connection on component mount and periodically
   useEffect(() => {
