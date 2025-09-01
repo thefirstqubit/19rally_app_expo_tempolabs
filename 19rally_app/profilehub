@@ -1,0 +1,217 @@
+import React from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+
+const ProfileHub = () => {
+  // Handler functions for TouchableOpacity buttons
+  const handleEditNotifications = () => {
+    Alert.alert("Settings", "Editing Notifications");
+  };
+
+  const handleEditPersonalInfo = () => {
+    Alert.alert("Settings", "Editing Personal Info");
+  };
+
+  const handleEditDirectDeposit = () => {
+    Alert.alert("Settings", "Editing Direct Deposit");
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.profileHeader}>
+          <View style={styles.avatarContainer}>
+            <Ionicons name="person" size={32} color="#007AFF" />
+          </View>
+        </View>
+        <Text style={styles.title}>Employee Portal</Text>
+
+        <View style={styles.cardContainer}>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Hours Worked</Text>
+            <View style={styles.chartPlaceholder}>
+              <Text style={styles.placeholderText}>
+                Hours chart placeholder
+                {/* TODO: Replace with charting library like react-native-chart-kit */}
+              </Text>
+            </View>
+            <View style={styles.statsContainer}>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>This week:</Text>
+                <Text style={styles.statValue}>32 hours</Text>
+              </View>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>This month:</Text>
+                <Text style={styles.statValue}>128 hours</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Earnings</Text>
+            <View style={styles.chartPlaceholder}>
+              <Text style={styles.placeholderText}>
+                Earnings chart placeholder
+                {/* TODO: Replace with charting library like react-native-chart-kit */}
+              </Text>
+            </View>
+            <View style={styles.statsContainer}>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>This week:</Text>
+                <Text style={styles.statValue}>$480</Text>
+              </View>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>This month:</Text>
+                <Text style={styles.statValue}>$1,920</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Settings</Text>
+            <View style={styles.settingsContainer}>
+              <View style={styles.settingRow}>
+                <Text style={styles.settingLabel}>Notifications</Text>
+                <TouchableOpacity
+                  accessible
+                  accessibilityLabel="Edit Notifications"
+                  onPress={handleEditNotifications}
+                >
+                  <Text style={styles.editButton}>Edit</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.settingRow}>
+                <Text style={styles.settingLabel}>Personal Info</Text>
+                <TouchableOpacity
+                  accessible
+                  accessibilityLabel="Edit Personal Info"
+                  onPress={handleEditPersonalInfo}
+                >
+                  <Text style={styles.editButton}>Edit</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.settingRow}>
+                <Text style={styles.settingLabel}>Direct Deposit</Text>
+                <TouchableOpacity
+                  accessible
+                  accessibilityLabel="Edit Direct Deposit"
+                  onPress={handleEditDirectDeposit}
+                >
+                  <Text style={styles.editButton}>Edit</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  scrollView: {
+    flex: 1,
+    padding: 16,
+  },
+  profileHeader: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  avatarContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(0, 122, 255, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  cardContainer: {
+    gap: 16,
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#eee",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  chartPlaceholder: {
+    height: 128,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  placeholderText: {
+    color: "#999",
+    fontSize: 14,
+  },
+  statsContainer: {
+    gap: 4,
+  },
+  statRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  statLabel: {
+    fontSize: 14,
+    color: "#666",
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  settingsContainer: {
+    gap: 12,
+  },
+  settingRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  settingLabel: {
+    fontSize: 14,
+  },
+  editButton: {
+    fontSize: 14,
+    color: "#007AFF",
+    fontWeight: "500",
+  },
+});
+
+export default ProfileHub;
