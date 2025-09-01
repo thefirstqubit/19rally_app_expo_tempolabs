@@ -1,0 +1,1491 @@
+import React, { useState, useEffect } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  FlatList,
+  Image,
+  Switch,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  Dimensions,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { TabView, SceneMap, TabBar } from "react-native-tab-view";
+import { Ionicons } from "@expo/vector-icons";
+import { format, addDays, subDays, isSameDay } from "date-fns";
+
+const CommunicationHub = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  const [messageInput, setMessageInput] = useState("");
+  const [taskInput, setTaskInput] = useState("");
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [visibleDates, setVisibleDates] = useState([]);
+  const [selectedDMUser, setSelectedDMUser] = useState(null);
+  const [dmMessageInput, setDmMessageInput] = useState("");
+  const [showUserActions, setShowUserActions] = useState(null);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState({});
+  const [taskNotes, setTaskNotes] = useState({});
+
+  // Tab view configuration
+  const [tabViewIndex, setTabViewIndex] = useState(0);
+  const [tabViewRoutes] = useState([
+    { key: "chat", title: "Group Chat" },
+    { key: "daily", title: "Checklist & Notes" },
+    { key: "inbox", title: "Inbox" },
+  ]);
+
+  // Mock data for messages
+  const [messages, setMessages] = useState([
+    {
+      id: "1",
+      user: {
+        name: "John Doe",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=john",
+      },
+      content:
+        "Good morning team! Remember we have a staff meeting at 2pm today.",
+      timestamp: "8:30 AM",
+    },
+    {
+      id: "2",
+      user: {
+        name: "Sarah Smith",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=sarah",
+      },
+      content:
+        "I'll be there. Should I prepare the sales report for discussion?",
+      timestamp: "8:45 AM",
+    },
+    {
+      id: "3",
+      user: {
+        name: "Mike Johnson",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=mike",
+      },
+      content:
+        "Yes please, and also bring the inventory numbers from yesterday.",
+      timestamp: "9:00 AM",
+    },
+  ]);
+
+  // Mock data for tasks
+  const [dailyTasks, setDailyTasks] = useState([
+    {
+      id: "d1",
+      content: "Check inventory levels",
+      completed: true,
+      assignee: "John",
+      date: new Date(),
+    },
+    {
+      id: "d2",
+      content: "Prepare for lunch rush",
+      completed: false,
+      assignee: "Sarah",
+      date: new Date(),
+    },
+    {
+      id: "d3",
+      content: "Clean refrigerator",
+      completed: false,
+      assignee: "Mike",
+      date: new Date(),
+    },
+    {
+      id: "d4",
+      content: "Staff meeting preparation",
+      completed: false,
+      assignee: "John",
+      date: addDays(new Date(), 1),
+    },
+    {
+      id: "d5",
+      content: "Inventory count",
+      completed: false,
+      assignee: "Sarah",
+      date: addDays(new Date(), 2),
+    },
+    {
+      id: "d6",
+      content: "Menu planning",
+      completed: false,
+      assignee: "Mike",
+      date: subDays(new Date(), 1),
+    },
+  ]);
+
+  const [weeklyTasks, setWeeklyTasks] = useState([
+    {
+      id: "w1",
+      content: "Staff schedule for next week",
+      completed: false,
+      assignee: "John",
+    },
+    { id: "w2", content: "Order supplies", completed: true, assignee: "Sarah" },
+    {
+      id: "w3",
+      content: "Review menu performance",
+      completed: false,
+      assignee: "Mike",
+    },
+  ]);
+
+  // Mock data for DM conversations
+  const [dmConversations, setDmConversations] = useState([
+    {
+      id: "dm1",
+      user: {
+        name: "John Doe",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=john",
+      },
+      lastMessage: "Can you check the inventory numbers?",
+      timestamp: "2m",
+      unreadCount: 2,
+      isOnline: true,
+    },
+    {
+      id: "dm2",
+      user: {
+        name: "Sarah Smith",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=sarah",
+      },
+      lastMessage: "Thanks for the update!",
+      timestamp: "1h",
+      unreadCount: 0,
+      isOnline: false,
+    },
+    {
+      id: "dm3",
+      user: {
+        name: "Mike Johnson",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=mike",
+      },
+      lastMessage: "See you at the meeting",
+      timestamp: "3h",
+      unreadCount: 1,
+      isOnline: true,
+    },
+  ]);
+
+  // Mock data for DM messages
+  const [dmMessages, setDmMessages] = useState({
+    dm1: [
+      {
+        id: "dm1-1",
+        senderId: "john",
+        content: "Hey, can you check the inventory numbers for today?",
+        timestamp: "2:30 PM",
+      },
+      {
+        id: "dm1-2",
+        senderId: "john",
+        content: "We need them for the meeting",
+        timestamp: "2:31 PM",
+      },
+    ],
+    dm2: [
+      {
+        id: "dm2-1",
+        senderId: "sarah",
+        content: "Thanks for the update on the schedule!",
+        timestamp: "1:15 PM",
+      },
+    ],
+    dm3: [
+      {
+        id: "dm3-1",
+        senderId: "mike",
+        content: "See you at the meeting later",
+        timestamp: "11:30 AM",
+      },
+    ],
+  });
+
+  const handleSendMessage = () => {
+    if (messageInput.trim()) {
+      const newMessage = {
+        id: Date.now().toString(),
+        user: {
+          name: "You",
+          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=you",
+        },
+        content: messageInput,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+      setMessages([...messages, newMessage]);
+      setMessageInput("");
+    }
+  };
+
+  const handleAddTask = (type) => {
+    if (taskInput.trim()) {
+      const newTask = {
+        id: Date.now().toString(),
+        content: taskInput,
+        completed: false,
+        assignee: "You",
+        date: selectedDate,
+      };
+
+      if (type === "daily") {
+        setDailyTasks([...dailyTasks, newTask]);
+      } else {
+        setWeeklyTasks([...weeklyTasks, newTask]);
+      }
+
+      setTaskInput("");
+    }
+  };
+
+  const toggleTaskCompletion = (id, type) => {
+    if (type === "daily") {
+      setDailyTasks(
+        dailyTasks.map((task) =>
+          task.id === id ? { ...task, completed: !task.completed } : task,
+        ),
+      );
+    } else {
+      setWeeklyTasks(
+        weeklyTasks.map((task) =>
+          task.id === id ? { ...task, completed: !task.completed } : task,
+        ),
+      );
+    }
+  };
+
+  const toggleTaskExpansion = (id) => {
+    setExpandedTasks((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+    setSelectedTaskId(id);
+  };
+
+  const saveNotes = (id, notes) => {
+    setTaskNotes((prev) => ({
+      ...prev,
+      [id]: notes,
+    }));
+  };
+
+  const handleSendDMMessage = () => {
+    if (dmMessageInput.trim() && selectedDMUser) {
+      const newMessage = {
+        id: Date.now().toString(),
+        senderId: "you",
+        content: dmMessageInput,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+
+      setDmMessages((prev) => ({
+        ...prev,
+        [selectedDMUser]: [...(prev[selectedDMUser] || []), newMessage],
+      }));
+
+      setDmMessageInput("");
+    }
+  };
+
+  const handleUserClick = (userId) => {
+    setShowUserActions(showUserActions === userId ? null : userId);
+  };
+
+  const startDirectMessage = (userName) => {
+    const conversation = dmConversations.find(
+      (conv) => conv.user.name === userName,
+    );
+    if (conversation) {
+      setSelectedDMUser(conversation.id);
+      setTabViewIndex(2); // Switch to inbox tab
+    }
+    setShowUserActions(null);
+  };
+
+  // Generate a range of dates for the scroll wheel
+  useEffect(() => {
+    const dates = [];
+    for (let i = -15; i <= 15; i++) {
+      dates.push(addDays(new Date(), i));
+    }
+    setVisibleDates(dates);
+  }, []);
+
+  // Filter tasks based on selected date
+  const filteredDailyTasks = dailyTasks.filter((task) =>
+    task.date ? isSameDay(task.date, selectedDate) : true,
+  );
+
+  // Handle date navigation
+  const navigateDate = (direction) => {
+    const newDate =
+      direction === "prev"
+        ? subDays(selectedDate, 1)
+        : addDays(selectedDate, 1);
+    setSelectedDate(newDate);
+  };
+
+  // Render message item
+  const renderMessageItem = ({ item }) => {
+    const isUserMessage = item.user.name === "You";
+    return (
+      <View
+        style={[
+          styles.messageContainer,
+          isUserMessage ? styles.userMessageContainer : {},
+        ]}
+      >
+        {!isUserMessage && (
+          <TouchableOpacity
+            accessible
+            accessibilityLabel={`Open actions for ${item.user.name}`}
+            onPress={() => handleUserClick(item.user.name)}
+          >
+            <View style={styles.avatarContainer}>
+              <Image source={{ uri: item.user.avatar }} style={styles.avatar} />
+              {showUserActions === item.user.name && (
+                <View style={styles.userActionsMenu}>
+                  <TouchableOpacity
+                    style={styles.userActionButton}
+                    accessible
+                    accessibilityLabel={`Start direct message with ${item.user.name}`}
+                    onPress={() => startDirectMessage(item.user.name)}
+                  >
+                    <Ionicons
+                      name="chatbubble-outline"
+                      size={14}
+                      color="#007AFF"
+                      style={styles.actionIcon}
+                    />
+                    <Text style={styles.actionText}>Direct Message</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        )}
+        <View
+          style={[
+            styles.messageContent,
+            isUserMessage ? styles.userMessageContent : {},
+          ]}
+        >
+          {!isUserMessage && (
+            <Text style={styles.messageSender}>{item.user.name}</Text>
+          )}
+          <View
+            style={[
+              styles.messageBubble,
+              isUserMessage ? styles.userMessageBubble : {},
+            ]}
+          >
+            <Text
+              style=[
+                styles.messageText,
+                isUserMessage ? styles.userMessageText : {},
+              ]}
+            >
+              {item.content}
+            </Text>
+          </View>
+          <Text style={styles.messageTime}>{item.timestamp}</Text>
+        </View>
+        {isUserMessage && (
+          <View style={styles.avatarContainer}>
+            <Image source={{ uri: item.user.avatar }} style={styles.avatar} />
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Render DM conversation item
+  const renderDMConversationItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.conversationItem}
+      accessible
+      accessibilityLabel={`Open conversation with ${item.user.name}`}
+      onPress={() => setSelectedDMUser(item.id)}
+    >
+      <View style={styles.conversationAvatar}>
+        <Image
+          source={{ uri: item.user.avatar }}
+          style={styles.conversationAvatarImage}
+        />
+        {item.isOnline && <View style={styles.onlineIndicator} />}
+      </View>
+      <View style={styles.conversationContent}>
+        <View style={styles.conversationHeader}>
+          <Text style={styles.conversationName}>{item.user.name}</Text>
+          <Text style={styles.conversationTime}>{item.timestamp}</Text>
+        </View>
+        <Text style={styles.conversationMessage} numberOfLines={1}>
+          {item.lastMessage}
+        </Text>
+      </View>
+      {item.unreadCount > 0 && (
+        <View style={styles.unreadBadge}>
+          <Text style={styles.unreadBadgeText}>{item.unreadCount}</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+
+  // Render DM message item
+  const renderDMMessageItem = ({ item }) => {
+    const isUserMessage = item.senderId === "you";
+    const otherUser = dmConversations.find((c) => c.id === selectedDMUser);
+
+    return (
+      <View
+        style=[
+          styles.dmMessageContainer,
+          isUserMessage ? styles.userDmMessageContainer : {},
+        ]}
+      >
+        {!isUserMessage && (
+          <View style={styles.dmAvatarContainer}>
+            <Image
+              source={{ uri: otherUser?.user.avatar }}
+              style={styles.dmAvatar}
+            />
+          </View>
+        )}
+        <View
+          style=[
+            styles.dmMessageContent,
+            isUserMessage ? styles.userDmMessageContent : {},
+          ]}
+        >
+          <View
+            style=[
+              styles.dmMessageBubble,
+              isUserMessage ? styles.userDmMessageBubble : {},
+            ]}
+          >
+            <Text
+              style=[
+                styles.dmMessageText,
+                isUserMessage ? styles.userDmMessageText : {},
+              ]}
+            >
+              {item.content}
+            </Text>
+          </View>
+          <Text style={styles.dmMessageTime}>{item.timestamp}</Text>
+        </View>
+        {isUserMessage && (
+          <View style={styles.dmAvatarContainer}>
+            <Image
+              source={{
+                uri: "https://api.dicebear.com/7.x/avataaars/svg?seed=you",
+              }}
+              style={styles.dmAvatar}
+            />
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Render task item
+  const renderTaskItem = ({ item }) => {
+    const isExpanded = expandedTasks[item.id];
+    const taskNote = taskNotes[item.id] || item.notes || "";
+
+    return (
+      <View style={styles.taskItem}>
+        <View style={styles.taskHeader}>
+          <TouchableOpacity
+            style={styles.taskCheckbox}
+            accessible
+            accessibilityLabel={`Toggle completion for ${item.content}`}
+            onPress={() => toggleTaskCompletion(item.id, "daily")}
+          >
+            <View
+              style=[
+                styles.checkbox,
+                item.completed ? styles.checkboxChecked : {},
+              ]}
+            >
+              {item.completed && (
+                <Ionicons name="checkmark" size={14} color="#fff" />
+              )}
+            </View>
+          </TouchableOpacity>
+          <Text
+            style=[
+              styles.taskContent,
+              item.completed ? styles.taskCompleted : {},
+            ]}
+          >
+            {item.content}
+          </Text>
+          <View style={styles.taskActions}>
+            <View style={styles.taskAssignee}>
+              <Ionicons name="person-outline" size={12} color="#666" />
+              <Text style={styles.taskAssigneeText}>{item.assignee}</Text>
+            </View>
+            <TouchableOpacity
+              accessible
+              accessibilityLabel={`Expand task ${item.content}`}
+              onPress={() => toggleTaskExpansion(item.id)}
+            >
+              <Ionicons
+                name={isExpanded ? "chevron-up" : "chevron-down"}
+                size={16}
+                color="#666"
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {isExpanded && (
+          <View style={styles.taskExpanded}>
+            <TextInput
+              style={styles.taskNotes}
+              multiline
+              placeholder="Add your notes here..."
+              value={taskNote}
+              onChangeText={(text) => saveNotes(item.id, text)}
+            />
+            <TouchableOpacity
+              style={styles.submitNoteButton}
+              accessible
+              accessibilityLabel="Submit task note"
+              onPress={() => Alert.alert("Task Note", "Note submitted")}
+            >
+              <Text style={styles.submitNoteButtonText}>Submit Note</Text>
+            </TouchableOpacity>
+            {taskNote && (
+              <Text style={styles.lastUpdated}>
+                Last updated: {format(new Date(), "MMM d, yyyy h:mm a")}
+              </Text>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Tab scenes
+  const renderGroupChatScene = () => (
+    <KeyboardAvoidingView
+      style={styles.sceneContainer}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+    >
+      <View style={styles.dateHeader}>
+        <View style={styles.flex1} />
+        <Text style={styles.dateHeaderText}>
+          {format(new Date(), "EEEE, MMMM d, yyyy")}
+        </Text>
+        <View style={styles.flex1Right}>
+          <TouchableOpacity
+            style={styles.optionsButton}
+            accessible
+            accessibilityLabel="Open group chat options"
+            onPress={() => setShowOptionsMenu(!showOptionsMenu)}
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+          </TouchableOpacity>
+          {showOptionsMenu && (
+            <View style={styles.optionsMenu}>
+              <TouchableOpacity
+                style={styles.optionItem}
+                accessible
+                accessibilityLabel="Create announcement"
+                onPress={() => {
+                  Alert.alert("Action", "Creating announcement message");
+                  setShowOptionsMenu(false);
+                }}
+              >
+                <Ionicons
+                  name="megaphone-outline"
+                  size={16}
+                  color="#666"
+                  style={styles.optionIcon}
+                />
+                <Text style={styles.optionText}>Announcement</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.optionItem}
+                accessible
+                accessibilityLabel="Create event"
+                onPress={() => {
+                  Alert.alert("Action", "Creating event message");
+                  setShowOptionsMenu(false);
+                }}
+              >
+                <Ionicons
+                  name="calendar-outline"
+                  size={16}
+                  color="#666"
+                  style={styles.optionIcon}
+                />
+                <Text style={styles.optionText}>Event</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+
+      <FlatList
+        data={messages}
+        renderItem={renderMessageItem}
+        keyExtractor={(item) => item.id}
+        style={styles.messagesList}
+        contentContainerStyle={styles.messagesListContent}
+      />
+
+      <View style={styles.messageInputContainer}>
+        <TouchableOpacity
+          style={styles.attachButton}
+          accessible
+          accessibilityLabel="Attach file"
+          onPress={() => Alert.alert("Action", "Opening file picker")}
+        >
+          <Ionicons name="attach" size={20} color="#007AFF" />
+        </TouchableOpacity>
+        <TextInput
+          style={styles.messageInput}
+          placeholder="Message..."
+          value={messageInput}
+          onChangeText={setMessageInput}
+          onSubmitEditing={handleSendMessage}
+        />
+        <TouchableOpacity
+          style=[
+            styles.sendButton,
+            !messageInput.trim() ? styles.sendButtonDisabled : {},
+          ]}
+          accessible
+          accessibilityLabel="Send message"
+          onPress={handleSendMessage}
+          disabled={!messageInput.trim()}
+        >
+          <Ionicons
+            name="send"
+            size={18}
+            color={messageInput.trim() ? "#fff" : "#ccc"}
+          />
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+  );
+
+  const renderInboxScene = () => (
+    <KeyboardAvoidingView
+      style={styles.sceneContainer}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+    >
+      {!selectedDMUser ? (
+        // DM Conversations List
+        <>
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Ionicons
+                name="search"
+                size={16}
+                color="#666"
+                style={styles.searchIcon}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search conversations..."
+              />
+            </View>
+          </View>
+
+          <FlatList
+            data={dmConversations}
+            renderItem={renderDMConversationItem}
+            keyExtractor={(item) => item.id}
+            style={styles.conversationsList}
+          />
+        </>
+      ) : (
+        // Individual DM Conversation
+        <>
+          <View style={styles.dmHeader}>
+            <TouchableOpacity
+              style={styles.backButton}
+              accessible
+              accessibilityLabel="Go back to conversations list"
+              onPress={() => setSelectedDMUser(null)}
+            >
+              <Ionicons name="chevron-back" size={20} color="#007AFF" />
+            </TouchableOpacity>
+            <View style={styles.dmUserInfo}>
+              <View style={styles.dmUserAvatar}>
+                <Image
+                  source={{
+                    uri: dmConversations.find((c) => c.id === selectedDMUser)
+                      ?.user.avatar,
+                  }}
+                  style={styles.dmUserAvatarImage}
+                />
+                {dmConversations.find((c) => c.id === selectedDMUser)
+                  ?.isOnline && <View style={styles.dmUserOnlineIndicator} />}
+              </View>
+              <View>
+                <Text style={styles.dmUserName}>
+                  {
+                    dmConversations.find((c) => c.id === selectedDMUser)?.user
+                      .name
+                  }
+                </Text>
+                <Text style={styles.dmUserStatus}>
+                  {dmConversations.find((c) => c.id === selectedDMUser)
+                    ?.isOnline
+                    ? "Active now"
+                    : "Last seen recently"}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.dmOptionsButton}
+              accessible
+              accessibilityLabel="Open conversation options"
+              onPress={() => Alert.alert("Action", "Opening conversation options")}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <FlatList
+            data={dmMessages[selectedDMUser] || []}
+            renderItem={renderDMMessageItem}
+            keyExtractor={(item) => item.id}
+            style={styles.dmMessagesList}
+            contentContainerStyle={styles.dmMessagesListContent}
+          />
+
+          <View style={styles.dmMessageInputContainer}>
+            <TouchableOpacity
+              style={styles.dmAttachButton}
+              accessible
+              accessibilityLabel="Attach file to direct message"
+              onPress={() => Alert.alert("Action", "Opening file picker")}
+            >
+              <Ionicons name="attach" size={20} color="#007AFF" />
+            </TouchableOpacity>
+            <TextInput
+              style={styles.dmMessageInput}
+              placeholder="Message..."
+              value={dmMessageInput}
+              onChangeText={setDmMessageInput}
+              onSubmitEditing={handleSendDMMessage}
+            />
+            <TouchableOpacity
+              style=[
+                styles.dmSendButton,
+                !dmMessageInput.trim() ? styles.dmSendButtonDisabled : {},
+              ]}
+              accessible
+              accessibilityLabel="Send direct message"
+              onPress={handleSendDMMessage}
+              disabled={!dmMessageInput.trim()}
+            >
+              <Ionicons
+                name="send"
+                size={18}
+                color={dmMessageInput.trim() ? "#fff" : "#ccc"}
+              />
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+    </KeyboardAvoidingView>
+  );
+
+  const renderDailyTasksScene = () => (
+    <KeyboardAvoidingView
+      style={styles.sceneContainer}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+    >
+      {/* Date Navigation */}
+      <View style={styles.dateNavigation}>
+        <TouchableOpacity
+          style={styles.dateNavButton}
+          accessible
+          accessibilityLabel="Previous date"
+          onPress={() => navigateDate("prev")}
+        >
+          <Ionicons name="chevron-back" size={20} color="#666" />
+        </TouchableOpacity>
+
+        <View style={styles.dateDisplay}>
+          <Text style={styles.currentDateText}>
+            {format(selectedDate, "EEE, MMM d, yyyy")}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.dateNavButton}
+          accessible
+          accessibilityLabel="Next date"
+          onPress={() => navigateDate("next")}
+        >
+          <Ionicons name="chevron-forward" size={20} color="#666" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.taskInputContainer}>
+        <TextInput
+          style={styles.taskInput}
+          placeholder="Add a new checklist item or note..."
+          value={taskInput}
+          onChangeText={setTaskInput}
+          onSubmitEditing={() => handleAddTask("daily")}
+        />
+        <TouchableOpacity
+          style={styles.addTaskButton}
+          accessible
+          accessibilityLabel="Add new task"
+          onPress={() => handleAddTask("daily")}
+        >
+          <Ionicons name="add" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      {filteredDailyTasks.length > 0 ? (
+        <FlatList
+          data={filteredDailyTasks}
+          renderItem={renderTaskItem}
+          keyExtractor={(item) => item.id}
+          style={styles.tasksList}
+          contentContainerStyle={styles.tasksListContent}
+        />
+      ) : (
+        <View style={styles.noTasksContainer}>
+          <Text style={styles.noTasksText}>
+            No tasks for {format(selectedDate, "MMMM d, yyyy")}
+          </Text>
+          <TouchableOpacity
+            style={styles.addTaskButtonAlt}
+            accessible
+            accessibilityLabel="Add a task for selected date"
+            onPress={() =>
+              setTaskInput("New task for " + format(selectedDate, "MMM d"))
+            }
+          >
+            <Text style={styles.addTaskButtonAltText}>Add a task</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </KeyboardAvoidingView>
+  );
+
+  const renderScene = SceneMap({
+    chat: renderGroupChatScene,
+    daily: renderDailyTasksScene,
+    inbox: renderInboxScene,
+  });
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Kimchi Smoke Team</Text>
+
+      <TabView
+        navigationState={{ index: tabViewIndex, routes: tabViewRoutes }}
+        renderScene={renderScene}
+        onIndexChange={setTabViewIndex}
+        initialLayout={{ width: Dimensions.get("window").width }}
+        renderTabBar={(props) => (
+          <TabBar
+            {...props}
+            style={styles.tabBar}
+            indicatorStyle={styles.tabIndicator}
+            labelStyle={styles.tabLabel}
+            activeColor="#007AFF"
+            inactiveColor="#666"
+          />
+        )}
+      />
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginVertical: 16,
+  },
+  tabBar: {
+    backgroundColor: "#fff",
+    elevation: 0,
+    shadowOpacity: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  tabIndicator: {
+    backgroundColor: "#007AFF",
+  },
+  tabLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    textTransform: "none",
+  },
+  sceneContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  dateHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  flex1: {
+    flex: 1,
+  },
+  flex1Right: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  dateHeaderText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#666",
+  },
+  optionsButton: {
+    padding: 4,
+  },
+  optionsMenu: {
+    position: "absolute",
+    top: 30,
+    right: 0,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    padding: 8,
+    width: 150,
+    zIndex: 10,
+  },
+  optionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  optionIcon: {
+    marginRight: 8,
+  },
+  optionText: {
+    fontSize: 14,
+    color: "#333",
+  },
+  messagesList: {
+    flex: 1,
+  },
+  messagesListContent: {
+    padding: 16,
+  },
+  messageContainer: {
+    flexDirection: "row",
+    marginBottom: 16,
+    alignItems: "flex-end",
+  },
+  userMessageContainer: {
+    flexDirection: "row-reverse",
+  },
+  avatarContainer: {
+    position: "relative",
+    marginRight: 8,
+  },
+  avatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  userActionsMenu: {
+    position: "absolute",
+    top: 32,
+    left: 0,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    padding: 8,
+    width: 140,
+    zIndex: 10,
+  },
+  userActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 8,
+  },
+  actionIcon: {
+    marginRight: 8,
+  },
+  actionText: {
+    fontSize: 12,
+    color: "#333",
+  },
+  messageContent: {
+    maxWidth: "75%",
+  },
+  userMessageContent: {
+    alignItems: "flex-end",
+  },
+  messageSender: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginBottom: 4,
+    marginLeft: 4,
+  },
+  messageBubble: {
+    backgroundColor: "#f0f0f0",
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+    padding: 12,
+  },
+  userMessageBubble: {
+    backgroundColor: "#007AFF",
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 4,
+  },
+  messageText: {
+    fontSize: 14,
+    color: "#333",
+  },
+  userMessageText: {
+    color: "#fff",
+  },
+  messageTime: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 4,
+    marginHorizontal: 4,
+  },
+  messageInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    backgroundColor: "#f9f9f9",
+  },
+  attachButton: {
+    padding: 8,
+  },
+  messageInput: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginHorizontal: 8,
+    fontSize: 14,
+  },
+  sendButton: {
+    backgroundColor: "#007AFF",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendButtonDisabled: {
+    backgroundColor: "#ccc",
+  },
+  searchContainer: {
+    padding: 16,
+  },
+  searchInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0f0f0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  conversationsList: {
+    flex: 1,
+  },
+  conversationItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  conversationAvatar: {
+    position: "relative",
+    marginRight: 12,
+  },
+  conversationAvatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  onlineIndicator: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    backgroundColor: "#4CAF50",
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  conversationContent: {
+    flex: 1,
+  },
+  conversationHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  conversationName: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  conversationTime: {
+    fontSize: 12,
+    color: "#999",
+  },
+  conversationMessage: {
+    fontSize: 13,
+    color: "#666",
+  },
+  unreadBadge: {
+    backgroundColor: "#007AFF",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  unreadBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  dmHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  backButton: {
+    padding: 4,
+  },
+  dmUserInfo: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  dmUserAvatar: {
+    position: "relative",
+    marginRight: 12,
+  },
+  dmUserAvatarImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  dmUserOnlineIndicator: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 8,
+    height: 8,
+    backgroundColor: "#4CAF50",
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#fff",
+  },
+  dmUserName: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  dmUserStatus: {
+    fontSize: 12,
+    color: "#999",
+  },
+  dmOptionsButton: {
+    padding: 4,
+  },
+  dmMessagesList: {
+    flex: 1,
+  },
+  dmMessagesListContent: {
+    padding: 16,
+  },
+  dmMessageContainer: {
+    flexDirection: "row",
+    marginBottom: 16,
+    alignItems: "flex-end",
+  },
+  userDmMessageContainer: {
+    flexDirection: "row-reverse",
+  },
+  dmAvatarContainer: {
+    marginRight: 8,
+  },
+  dmAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  dmMessageContent: {
+    maxWidth: "75%",
+  },
+  userDmMessageContent: {
+    alignItems: "flex-end",
+  },
+  dmMessageBubble: {
+    backgroundColor: "#f0f0f0",
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+    padding: 12,
+  },
+  userDmMessageBubble: {
+    backgroundColor: "#007AFF",
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 4,
+  },
+  dmMessageText: {
+    fontSize: 14,
+    color: "#333",
+  },
+  userDmMessageText: {
+    color: "#fff",
+  },
+  dmMessageTime: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 4,
+    marginHorizontal: 4,
+  },
+  dmMessageInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    backgroundColor: "#f9f9f9",
+  },
+  dmAttachButton: {
+    padding: 8,
+  },
+  dmMessageInput: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginHorizontal: 8,
+    fontSize: 14,
+  },
+  dmSendButton: {
+    backgroundColor: "#007AFF",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dmSendButtonDisabled: {
+    backgroundColor: "#ccc",
+  },
+  dateNavigation: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  dateNavButton: {
+    padding: 4,
+  },
+  dateDisplay: {
+    alignItems: "center",
+  },
+  currentDateText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  taskInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+  },
+  taskInput: {
+    flex: 1,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 14,
+    marginRight: 8,
+  },
+  addTaskButton: {
+    backgroundColor: "#007AFF",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tasksList: {
+    flex: 1,
+  },
+  tasksListContent: {
+    padding: 16,
+  },
+  taskItem: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#eee",
+    marginBottom: 8,
+    overflow: "hidden",
+  },
+  taskHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+  },
+  taskCheckbox: {
+    marginRight: 12,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: "#007AFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: "#007AFF",
+  },
+  taskContent: {
+    flex: 1,
+    fontSize: 14,
+  },
+  taskCompleted: {
+    textDecorationLine: "line-through",
+    color: "#999",
+  },
+  taskActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  taskAssignee: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  taskAssigneeText: {
+    fontSize: 12,
+    color: "#666",
+    marginLeft: 4,
+  },
+  taskExpanded: {
+    padding: 12,
+    backgroundColor: "#f9f9f9",
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+  taskNotes: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#eee",
+    padding: 12,
+    fontSize: 14,
+    minHeight: 100,
+    textAlignVertical: "top",
+    marginBottom: 12,
+  },
+  submitNoteButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignSelf: "center",
+    marginBottom: 8,
+  },
+  submitNoteButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  lastUpdated: {
+    fontSize: 10,
+    color: "#999",
+    textAlign: "center",
+  },
+  noTasksContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  noTasksText: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 12,
+  },
+  addTaskButtonAlt: {
+    backgroundColor: "#f0f0f0",
+    borderRadius: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  addTaskButtonAltText: {
+    fontSize: 12,
+    color: "#333",
+  },
+});
+
+export default CommunicationHub;
