@@ -1,0 +1,553 @@
+import React, { useState, useEffect } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Switch,
+  ScrollView,
+  Modal,
+  Alert,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+
+const TimeClockHub = ({
+  userName = "John Doe",
+  isActive = false,
+  companyWifiSSID = "BistroWiFi",
+}) => {
+  const [clockedIn, setClockedIn] = useState(isActive);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [scheduleView, setScheduleView] = useState("weekly");
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
+  const [wifiStatus, setWifiStatus] = useState("");
+  const [autoClockInEnabled, setAutoClockInEnabled] = useState(true);
+  const [activeSection, setActiveSection] = useState("recent");
+
+  // Simulated Wi-Fi check for mobile
+  const checkWifiConnection = async () => {
+    try {
+      // TODO: Replace with expo-network for real Wi-Fi detection
+      // Example: import * as Network from 'expo-network';
+      // const networkState = await Network.getNetworkStateAsync();
+      setWifiStatus(companyWifiSSID);
+
+      if (companyWifiSSID && !clockedIn && autoClockInEnabled) {
+        setTimeout(() => handleAutoClockIn(), 2000);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to detect Wi-Fi connection");
+    }
+  };
+
+  const handleAutoClockIn = () => {
+    setClockedIn(true);
+    Alert.alert("Success", "Auto clocked in via Wi-Fi connection");
+  };
+
+  const handleClockToggle = () => {
+    if (clockedIn) {
+      // For clock out, open QR scanner
+      setIsQRScannerOpen(true);
+    } else {
+      // For clock in, use regular toggle
+      setClockedIn(true);
+      Alert.alert("Success", "Clocked in successfully");
+    }
+  };
+
+  const handleQRScan = (data) => {
+    if (data) {
+      if (data.includes("bistro-clockout") || data === "VALID_CLOCKOUT_CODE") {
+        setClockedIn(false);
+        setIsQRScannerOpen(false);
+        Alert.alert("Success", "Clocked out successfully via QR scan");
+      } else {
+        Alert.alert("Error", "Invalid QR code for clock out");
+      }
+    }
+  };
+
+  // Effect to check Wi-Fi connection on component mount and periodically
+  useEffect(() => {
+    checkWifiConnection();
+
+    // Check Wi-Fi status every 30 seconds
+    const interval = setInterval(checkWifiConnection, 30000);
+
+    return () => clearInterval(interval);
+  }, [clockedIn, autoClockInEnabled]);
+
+  // Render the QR scanner dialog
+  const renderQRScanner = () => {
+    return (
+      <Modal
+        visible={isQRScannerOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsQRScannerOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Scan QR Code to Clock Out</Text>
+
+            <View style={styles.qrContainer}>
+              <Ionicons name="qr-code" size={64} color="#666" />
+              <Text style={styles.qrText}>
+                QR Scanner would appear here
+              </Text>
+              <Text style={styles.qrSubtext}>
+                {/* TODO: Replace with expo-camera for real QR scanning */}
+                In a real app, camera would be active
+              </Text>
+
+              <View style={styles.buttonGroup}>
+                <TouchableOpacity
+                  style={styles.primaryButton}
+                  accessible
+                  accessibilityLabel="Simulate valid QR scan"
+                  onPress={() => handleQRScan("bistro-clockout-valid")}
+                >
+                  <Text style={styles.primaryButtonText}>
+                    Simulate Valid QR Scan
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  accessible
+                  accessibilityLabel="Simulate invalid QR scan"
+                  onPress={() => handleQRScan("invalid-code")}
+                >
+                  <Text style={styles.secondaryButtonText}>
+                    Simulate Invalid QR Scan
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              accessible
+              accessibilityLabel="Cancel QR scan"
+              onPress={() => setIsQRScannerOpen(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.scheduleButton}
+            accessible
+            accessibilityLabel="View schedule"
+            onPress={() => {
+              setIsScheduleOpen(true);
+              Alert.alert("Action", "Opening schedule view");
+            }}
+          >
+            <Ionicons name="calendar" size={20} color="#000" />
+            <Text style={styles.scheduleButtonText}>Schedule</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Time Clock</Text>
+
+          <View style={styles.welcomeSection}>
+            <Text style={styles.welcomeText}>Welcome, {userName}</Text>
+            <Text style={styles.dateTimeText}>
+              {new Date().toLocaleDateString()} |{" "}
+              {new Date().toLocaleTimeString()}
+              {/* Consider using date-fns for consistent formatting */}
+            </Text>
+          </View>
+
+          <View style={styles.clockButtonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.clockButton,
+                clockedIn ? styles.clockOutButton : styles.clockInButton,
+              ]}
+              accessible
+              accessibilityLabel={clockedIn ? "Clock out" : "Clock in"}
+              onPress={handleClockToggle}
+            >
+              {clockedIn ? (
+                <View style={styles.buttonContent}>
+                  <Ionicons
+                    name="qr-code"
+                    size={20}
+                    color="#fff"
+                    style={styles.buttonIcon}
+                  />
+                  <Text style={styles.clockButtonText}>Clock Out (QR)</Text>
+                </View>
+              ) : (
+                <Text style={styles.clockButtonText}>Clock In</Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.wifiStatus}>
+              <Ionicons
+                name="wifi"
+                size={16}
+                color="#666"
+                style={styles.wifiIcon}
+              />
+              {wifiStatus ? (
+                <Text style={styles.wifiConnectedText}>
+                  Connected to: {wifiStatus}
+                  {wifiStatus === companyWifiSSID ? " ✓" : ""}
+                </Text>
+              ) : (
+                <Text style={styles.wifiCheckingText}>Checking Wi-Fi...</Text>
+              )}
+            </View>
+
+            <View style={styles.autoClockContainer}>
+              <Switch
+                value={autoClockInEnabled}
+                onValueChange={setAutoClockInEnabled}
+                trackColor={{ false: "#ccc", true: "#007bff" }}
+                accessible
+                accessibilityLabel="Toggle auto clock-in"
+              />
+              <Text style={styles.autoClockText}>
+                Auto clock-in on company Wi-Fi
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.tabContainer}>
+            <TouchableOpacity
+              style={[
+                styles.tab,
+                activeSection === "upcoming" ? styles.activeTab : null,
+              ]}
+              accessible
+              accessibilityLabel="View upcoming activities"
+              onPress={() => setActiveSection("upcoming")}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeSection === "upcoming" ? styles.activeTabText : null,
+                ]}
+              >
+                Upcoming
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.tab,
+                activeSection === "recent" ? styles.activeTab : null,
+              ]}
+              accessible
+              accessibilityLabel="View recent activities"
+              onPress={() => setActiveSection("recent")}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeSection === "recent" ? styles.activeTabText : null,
+                ]}
+              >
+                Recent
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {activeSection === "recent" ? (
+            <View style={styles.activityList}>
+              <View style={styles.activityItem}>
+                <Text style={styles.activityText}>Clock In</Text>
+                <Text style={styles.activityTime}>Today, 8:30 AM</Text>
+              </View>
+
+              <View style={styles.activityItem}>
+                <Text style={styles.activityText}>Clock Out</Text>
+                <Text style={styles.activityTime}>Yesterday, 5:15 PM</Text>
+              </View>
+
+              <View style={styles.activityItem}>
+                <Text style={styles.activityText}>Clock In</Text>
+                <Text style={styles.activityTime}>Yesterday, 9:00 AM</Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.activityList}>
+              <View style={styles.activityItem}>
+                <Text style={styles.activityText}>Shift Start</Text>
+                <Text style={styles.activityTime}>Tomorrow, 9:00 AM</Text>
+              </View>
+
+              <View style={styles.activityItem}>
+                <Text style={styles.activityText}>Staff Meeting</Text>
+                <Text style={styles.activityTime}>Friday, 2:00 PM</Text>
+              </View>
+
+              <View style={styles.activityItem}>
+                <Text style={styles.activityText}>Training Session</Text>
+                <Text style={styles.activityTime}>Next Monday, 10:00 AM</Text>
+              </View>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Render QR Scanner modal if open */}
+      {renderQRScanner()}
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  scrollView: {
+    flex: 1,
+    padding: 16,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  scheduleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  scheduleButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  welcomeSection: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  welcomeText: {
+    fontSize: 22,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  dateTimeText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  clockButtonContainer: {
+    alignItems: "center",
+  },
+  clockButton: {
+    width: 180,
+    height: 56,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  clockInButton: {
+    backgroundColor: "#4CAF50",
+  },
+  clockOutButton: {
+    backgroundColor: "#F44336",
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  clockButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  wifiStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  wifiIcon: {
+    marginRight: 6,
+  },
+  wifiConnectedText: {
+    color: "#4CAF50",
+    fontSize: 14,
+  },
+  wifiCheckingText: {
+    color: "#666",
+    fontSize: 14,
+  },
+  autoClockContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  autoClockText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: "#666",
+  },
+  tabContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  tab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginHorizontal: 4,
+    borderRadius: 4,
+  },
+  activeTab: {
+    backgroundColor: "#007bff",
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#666",
+  },
+  activeTabText: {
+    color: "#fff",
+  },
+  activityList: {
+    marginBottom: 8,
+  },
+  activityItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 12,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  activityText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  activityTime: {
+    fontSize: 14,
+    color: "#666",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 16,
+  },
+  qrContainer: {
+    width: "100%",
+    height: 240,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: "#ccc",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  qrText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 8,
+  },
+  qrSubtext: {
+    fontSize: 12,
+    color: "#999",
+    marginBottom: 16,
+  },
+  buttonGroup: {
+    width: "100%",
+    marginBottom: 8,
+  },
+  primaryButton: {
+    backgroundColor: "#007bff",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  primaryButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  secondaryButton: {
+    backgroundColor: "#f5f5f5",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    marginBottom: 8,
+  },
+  secondaryButtonText: {
+    color: "#333",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  cancelButton: {
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  cancelButtonText: {
+    color: "#666",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+});
+
+export default TimeClockHub;
