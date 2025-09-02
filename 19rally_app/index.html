@@ -1,0 +1,26 @@
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { StyleSheet, View, Text } from "react-native";
+import * as TempoErrorHandling from "./tempo-error-handling"; // Placeholder for Tempo Labs script
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <View style={styles.container}>
+        <Text>Welcome to 19rally (Tempo Lab App)</Text>
+        {/* Integrate Tempo Labs error handling here if needed */}
+        {TempoErrorHandling.init && TempoErrorHandling.init()}
+        <StatusBar style="auto" />
+      </View>
+    </SafeAreaProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
