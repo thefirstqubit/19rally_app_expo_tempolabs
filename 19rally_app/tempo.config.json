@@ -1,0 +1,66 @@
+export const typography = {
+  h1: {
+    name: "Header 1",
+    preview: "Aa",
+    style: "text-4xl font-extrabold tracking-tight lg:text-5xl",
+    previewStyle: "text-3xl font-extrabold tracking-tight",
+  },
+  h2: {
+    name: "Header 2",
+    preview: "Aa",
+    style: "text-3xl font-semibold tracking-tight",
+  },
+  h3: {
+    name: "Header 3",
+    preview: "Aa",
+    style: "text-2xl font-semibold tracking-tight",
+  },
+  h4: {
+    name: "Header 4",
+    preview: "Aa",
+    style: "text-xl font-semibold tracking-tight",
+  },
+  p: {
+    name: "Paragraph",
+    preview: "¶",
+    style: "leading-7",
+  },
+  lead: {
+    name: "Lead Text",
+    preview: "A",
+    style: "text-xl text-muted-foreground",
+  },
+  blockquote: {
+    name: "Blockquote",
+    preview: "abc",
+    style: "border-l-2 pl-6 italic",
+    previewStyle: "border-l-2 pl-2 italic",
+  },
+  code: {
+    name: "Inline Code",
+    preview: "foo",
+    style: "rounded bg-muted px-1 py-0.5 font-mono text-sm font-semibold",
+  },
+  large: {
+    name: "Large",
+    preview: "A",
+    style: "text-lg font-semibold",
+  },
+  small: {
+    name: "Small",
+    preview: "Aa",
+    style: "text-sm font-medium leading-none",
+  },
+  muted: {
+    name: "Muted",
+    preview: "Aa",
+    style: "text-sm text-muted-foreground",
+  },
+  xs: {
+    name: "Extra Small",
+    preview: "Aa",
+    style: "text-xs font-light",
+  },
+} as const;
+
+export type TypographyKey = keyof typeof typography;
